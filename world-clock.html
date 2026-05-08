@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Clock</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0f;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #4fc3f7;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      color: #555;
+      letter-spacing: 0.15em;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .card {
+      background: #12121e;
+      border: 1px solid #1e1e3a;
+      border-radius: 14px;
+      padding: 22px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #1a237e, #4fc3f7, #1a237e);
+    }
+
+    .card:hover { border-color: #4fc3f7; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .flag { font-size: 1.8rem; line-height: 1; }
+
+    .country-info { display: flex; flex-direction: column; }
+
+    .country-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .city-name {
+      font-size: 0.7rem;
+      color: #666;
+      letter-spacing: 0.05em;
+    }
+
+    .time {
+      font-family: 'Courier New', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #4fc3f7;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 20px rgba(79, 195, 247, 0.4);
+      margin-top: 8px;
+    }
+
+    .date {
+      font-size: 0.72rem;
+      color: #555;
+      letter-spacing: 0.05em;
+    }
+
+    .ampm {
+      font-size: 1rem;
+      color: #78909c;
+      margin-left: 4px;
+    }
+
+    .offset {
+      font-size: 0.65rem;
+      color: #37474f;
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>World Clock</h1>
+  <p class="subtitle">Top 12 Countries &mdash; Live Time</p>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const countries = [
+      { flag: '🇺🇸', name: 'United States', city: 'New York',   tz: 'America/New_York'    },
+      { flag: '🇬🇧', name: 'United Kingdom', city: 'London',    tz: 'Europe/London'       },
+      { flag: '🇩🇪', name: 'Germany',        city: 'Berlin',    tz: 'Europe/Berlin'       },
+      { flag: '🇫🇷', name: 'France',         city: 'Paris',     tz: 'Europe/Paris'        },
+      { flag: '🇮🇳', name: 'India',          city: 'Mumbai',    tz: 'Asia/Kolkata'        },
+      { flag: '🇨🇳', name: 'China',          city: 'Beijing',   tz: 'Asia/Shanghai'       },
+      { flag: '🇯🇵', name: 'Japan',          city: 'Tokyo',     tz: 'Asia/Tokyo'          },
+      { flag: '🇦🇺', name: 'Australia',      city: 'Sydney',    tz: 'Australia/Sydney'    },
+      { flag: '🇧🇷', name: 'Brazil',         city: 'São Paulo', tz: 'America/Sao_Paulo'   },
+      { flag: '🇨🇦', name: 'Canada',         city: 'Toronto',   tz: 'America/Toronto'     },
+      { flag: '🇦🇪', name: 'UAE',            city: 'Dubai',     tz: 'Asia/Dubai'          },
+      { flag: '🇸🇬', name: 'Singapore',      city: 'Singapore', tz: 'Asia/Singapore'      },
+    ];
+
+    const grid = document.getElementById('grid');
+
+    countries.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="flag">${c.flag}</span>
+          <div class="country-info">
+            <span class="country-name">${c.name}</span>
+            <span class="city-name">${c.city}</span>
+          </div>
+        </div>
+        <div class="time" id="time-${c.tz.replace(/\//g, '-')}">00:00:00</div>
+        <div class="date" id="date-${c.tz.replace(/\//g, '-')}">---</div>
+        <span class="offset" id="offset-${c.tz.replace(/\//g, '-')}"></span>
+      `;
+      grid.appendChild(card);
+    });
+
+    function getOffset(tz) {
+      const now = new Date();
+      const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+      const diff = Math.round((local - now) / 60000);
+      const h = Math.floor(Math.abs(diff) / 60);
+      const m = Math.abs(diff) % 60;
+      const sign = diff >= 0 ? '+' : '-';
+      return `UTC${sign}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function tick() {
+      const now = new Date();
+      countries.forEach(c => {
+        const id = c.tz.replace(/\//g, '-');
+
+        const timeParts = new Intl.DateTimeFormat('en-US', {
+          timeZone: c.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+        }).formatToParts(now);
+
+        const hour   = timeParts.find(p => p.type === 'hour').value;
+        const minute = timeParts.find(p => p.type === 'minute').value;
+        const second = timeParts.find(p => p.type === 'second').value;
+        const ampm   = timeParts.find(p => p.type === 'dayPeriod').value;
+
+        document.getElementById(`time-${id}`).innerHTML =
+          `${hour}:${minute}:${second}<span class="ampm">${ampm}</span>`;
+
+        document.getElementById(`date-${id}`).textContent =
+          new Intl.DateTimeFormat('en-US', {
+            timeZone: c.tz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+          }).format(now);
+
+        document.getElementById(`offset-${id}`).textContent = getOffset(c.tz);
+      });
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
